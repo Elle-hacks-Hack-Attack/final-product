@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 import random  # For heart rate generation
+import cohere  # For GPT-3 API
 
 # Add the escape-through-time folder to the system path
 sys.path.append(os.path.join(os.path.dirname(__file__), "escape_through_time"))
@@ -17,6 +18,8 @@ from escape_through_time.renderer import Renderer  # Import game renderer
 import escape_through_time.config as config
 
 SCORES_FILE = "scores.json"
+COHERE_API_KEY = "h9eQoxmKFx6uZ57TMDVzWiEyPvfE1k3gOKK6x5c7"
+cohere_client = cohere.Client(COHERE_API_KEY)
 
 # Initialize MediaPipe Pose
 mp_pose = mp.solutions.pose
@@ -100,6 +103,27 @@ def show_score_graph():
 
     st.pyplot(fig)
 
+def chat_with_care_mate():
+    st.subheader("CareMate - Your AI Companion")
+    st.write("Talk to CareMate, your friendly AI companion!")
+    
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    
+    user_input = st.text_input("Say something to CareMate:", "")
+    if st.button("Send") and user_input:
+        response = cohere_client.generate(
+            model='command-r-plus',
+            prompt=f"You are CareMate, a friendly AI companion for elderly users. Be kind and engaging.\nUser: {user_input}\nCareMate:",
+            max_tokens=100
+        )
+        reply = response.generations[0].text.strip()
+        st.session_state.chat_history.append(("You", user_input))
+        st.session_state.chat_history.append(("CareMate", reply))
+    
+    for sender, message in st.session_state.chat_history:
+        st.write(f"**{sender}:** {message}")
+
 def run_game():
     stframe = st.empty()  # Streamlit frame for displaying video
     
@@ -158,7 +182,7 @@ def run_game():
     show_score_graph()
 
 # Sidebar layout
-st.sidebar.header('App Name')
+st.sidebar.header('CareMate - Your Health Companion')
 st.sidebar.markdown('<h1 style="font-size: 50px;">User Profile</h1>', unsafe_allow_html=True)
 profile_image = "https://th.bing.com/th/id/OIP.0zxk_tJUgh4DVrqXYyT-SgHaFj?rs=1&pid=ImgDetMain"
 st.sidebar.image(profile_image, width=300)
@@ -171,7 +195,7 @@ st.sidebar.write(f"**Heart Rate**: {last_heart_rate} bpm")
 st.sidebar.write("**Step Count**: 2 steps")
 
 st.sidebar.write("### Navigation")
-tabs = ["Game", "Health Dashboard"]
+tabs = ["Game", "Health Dashboard", "CareMate"]
 tab_selection = st.sidebar.radio("Go to", tabs)
 
 if tab_selection == "Game":
@@ -223,3 +247,7 @@ elif tab_selection == "Health Dashboard":
     st.write("Welcome to your Health Dashboard!")
     st.write("Here you can track your health data and monitor your progress.")
     show_score_graph()
+
+elif tab_selection == "CareMate":
+    chat_with_care_mate()
+
